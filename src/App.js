@@ -5,7 +5,7 @@ import AgoraRTC from "agora-rtc-sdk-ng"
 import { useEffect, useState } from 'react';
 import {io} from "socket.io-client";
 
-let socket=io("http://192.168.1.104:4000");
+let socket=io("http://192.168.0.105:4000");
 
 
 let channelParameters =
@@ -26,7 +26,7 @@ function App() {
    
   let call = async()=>{
   try {
-    let res= await axios.post('http://192.168.1.104:4000/agents/connectmetoagent')
+    let res= await axios.post('http://192.168.0.105:4000/agents/connectmetoagent')
     console.log(res.data)
     await client.join('e203b70afce24812a2c1d405a9bdd3b9', 'test',res.data.token,res.data.uid);
 
