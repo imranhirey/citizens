@@ -3,17 +3,10 @@ import './App.css';
 import axios from 'axios';
 import AgoraRTC from "agora-rtc-sdk-ng"
 import { useEffect, useState } from 'react';
-let options = 
-{
-    // Pass your App ID here.
-    appId: '0c3d29a79f1b446bad8e130af871b945',
-    // Set the channel name.
-    channel: 'imran',
-    // Pass your temp token here.
-    token: '007eJxTYJj5XWTP8Vgzqy338pgmHDPQNeLQfLuubuO8o5URUdt28uxVYDBINk4xskw0t0wzTDIxMUtKTLFINTQ2SEyzMDdMsjQxbb7an9wQyMhwROotIyMDBIL4rAyZuUWJeQwMAIBRIHc=',
-    // Set the user ID.
-    uid: 0,
-};
+import {io} from "socket.io-client";
+
+let socket=io("http://192.168.1.104:4000");
+
 
 let channelParameters =
 {
@@ -26,25 +19,21 @@ let channelParameters =
 };
 
 function App() {
-  let [agoraEngine, setAgoraEngine] = useState(null)
-    useEffect(()=>{
-        let init = async () => {
-            let client = AgoraRTC.createClient({mode: 'rtc', codec: 'vp8'});
-            setAgoraEngine(client)
 
+   
         
-        }
-        init()
-
-    },[])
-    console.log(agoraEngine)
+  let client = AgoraRTC.createClient({mode: 'rtc', codec: 'vp8'});   
+   
   let call = async()=>{
   try {
-    await agoraEngine.join(options.appId, options.channel, options.token, options.uid);
+    let res= await axios.post('http://192.168.1.104:4000/agents/connectmetoagent')
+    console.log(res.data)
+    await client.join('e203b70afce24812a2c1d405a9bdd3b9', 'test',res.data.token,res.data.uid);
+
+
     channelParameters.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-    // Publish the local audio track in the channel.
-    await agoraEngine.publish(channelParameters.localAudioTrack);
-    console.log("publish success");    
+    client.publish([channelParameters.localAudioTrack])
+    
    
   } catch (error) {
     console.log("error", error.message);
@@ -52,6 +41,29 @@ function App() {
   }
 
   }
+  socket.on('connectionaccepted', (data)=>{
+    let randomid=Math.floor(Math.random()*1000000000)
+    console.warn('i got signal from the contact center',data.daatada.token);
+    client.join('e203b70afce24812a2c1d405a9bdd3b9', 'test',data.daatada.token,data.daatada.uid);
+  
+  })
+
+  client.on('user-published', async (user, mediaType) => {
+    console.warn('i got signal from the contact center');
+    await client.subscribe(user, mediaType);
+    console.log('subscribe success');
+    if (mediaType === 'audio') {
+      channelParameters.remoteAudioTrack = user.audioTrack;
+
+      channelParameters.remoteUid = user.uid;
+      channelParameters.remoteAudioTrack.play();
+      
+    }
+  })  
+
+  client.getRTCStats((stats)=>{
+    console.warn('remote stats',stats)
+  })
   return (
     <div className="App">
      <button onClick={()=>{
